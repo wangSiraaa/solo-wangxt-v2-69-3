@@ -1,0 +1,144 @@
+<section class="result" *ngIf="result">
+  <!-- 差额视图 -->
+  <div class="diff-banner">
+    <h2>方案差异（延期方案 − 原方案）</h2>
+    <div class="interval-chips" *ngIf="intervals.length > 0">
+      <span class="interval-chip" *ngFor="let iv of intervals">{{ intervalLabel(iv) }}</span>
+    </div>
+    <div class="diff-chips">
+      <div class="chip">
+        <span class="chip-label">新增期数</span>
+        <strong>{{ result.diff.periodDiff }} 期</strong>
+        <small>原 {{ result.original.summary.periods }} 期 → 延期 {{ result.deferred.summary.periods }} 期</small>
+      </div>
+      <div class="chip highlight">
+        <span class="chip-label">总利息差</span>
+        <strong>{{ result.diff.interestDiff | number: '1.2-2' }} 元</strong>
+        <small>延期方案总利息 {{ result.deferred.summary.totalInterest | number: '1.2-2' }} 元</small>
+      </div>
+      <div class="chip">
+        <span class="chip-label">延期利息</span>
+        <strong>{{ result.deferred.summary.deferredInterest | number: '1.2-2' }} 元</strong>
+        <small>宽限区间内计提</small>
+      </div>
+      <div class="chip">
+        <span class="chip-label">资本化金额</span>
+        <strong>{{ result.deferred.summary.capitalizedAmount | number: '1.2-2' }} 元</strong>
+        <small>计入本金的利息</small>
+      </div>
+      <div class="chip">
+        <span class="chip-label">总成本差</span>
+        <strong>{{ result.diff.totalCostDiff | number: '1.2-2' }} 元</strong>
+        <small>含手续费 {{ result.deferred.summary.fee | number: '1.2-2' }} 元</small>
+      </div>
+    </div>
+    <p class="explanation">
+      两方案适用同一笔提前还款（{{ result.deferred.summary.prepayment | number: '1.2-2' }} 元）。
+      延期方案在宽限区间内按所选方式处理：只还利息期间本金不变；资本化区间利息计入本金、下一期计息基数增加；
+      一次性补缴区间挂账本息在退出期一次性收回。延期利息 {{ result.deferred.summary.deferredInterest | number: '1.2-2' }} 元、
+      资本化 {{ result.deferred.summary.capitalizedAmount | number: '1.2-2' }} 元已单独列示。
+    </p>
+  </div>
+
+  <!-- 两方案并排 -->
+  <div class="plans">
+    <article class="plan card" *ngFor="let item of plans; trackBy: trackPlan">
+      <h3>{{ item.label }}</h3>
+      <div class="summary-grid">
+        <div>
+          <span>期数</span>
+          <strong>{{ item.plan.summary.periods }} 期</strong>
+        </div>
+        <div *ngIf="isInstallment">
+          <span>月供水平</span>
+          <strong>{{ item.plan.summary.monthlyPayment! | number: '1.2-2' }} 元</strong>
+        </div>
+        <ng-container *ngIf="!isInstallment">
+          <div>
+            <span>首期现金</span>
+            <strong>{{ item.plan.summary.firstPayment | number: '1.2-2' }} 元</strong>
+          </div>
+          <div>
+            <span>末期现金</span>
+            <strong>{{ item.plan.summary.lastPayment | number: '1.2-2' }} 元</strong>
+          </div>
+        </ng-container>
+        <div>
+          <span>正常利息</span>
+          <strong>{{ item.plan.summary.normalInterest | number: '1.2-2' }} 元</strong>
+        </div>
+        <div>
+          <span>延期利息</span>
+          <strong class="deferred">{{ item.plan.summary.deferredInterest | number: '1.2-2' }} 元</strong>
+        </div>
+        <div>
+          <span>资本化金额</span>
+          <strong class="deferred">{{ item.plan.summary.capitalizedAmount | number: '1.2-2' }} 元</strong>
+        </div>
+        <div>
+          <span>一次性补缴</span>
+          <strong>{{ item.plan.summary.lumpSumPaid | number: '1.2-2' }} 元</strong>
+        </div>
+        <div>
+          <span>提前还款</span>
+          <strong>{{ item.plan.summary.prepayment | number: '1.2-2' }} 元</strong>
+        </div>
+        <div>
+          <span>总利息</span>
+          <strong class="interest">{{ item.plan.summary.totalInterest | number: '1.2-2' }} 元</strong>
+        </div>
+        <div>
+          <span>总成本（含费）</span>
+          <strong>{{ item.plan.summary.totalCost | number: '1.2-2' }} 元</strong>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>期次</th>
+              <th>模式</th>
+              <th>当日事件</th>
+              <th>计划还款</th>
+              <th>本金</th>
+              <th>利息</th>
+              <th>补缴</th>
+              <th>提前还款</th>
+              <th>资本化</th>
+              <th>剩余本金</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of item.plan.schedule" [class]="modeClass(row.mode)" [class.settled]="row.balance === 0">
+              <td>{{ row.period }}</td>
+              <td><span class="mode-badge" [class]="modeClass(row.mode)">{{ modeLabels[row.mode] }}</span></td>
+              <td class="events">
+                <span class="event-chip" *ngFor="let e of row.events">{{ eventLabels[e] }}</span>
+              </td>
+              <td>{{ row.payment | number: '1.2-2' }}</td>
+              <td>{{ row.principal | number: '1.2-2' }}</td>
+              <td>{{ row.interest | number: '1.2-2' }}</td>
+              <td>{{ row.lumpSumPaid > 0 ? (row.lumpSumPaid | number: '1.2-2') : '—' }}</td>
+              <td>{{ row.prepayment > 0 ? (row.prepayment | number: '1.2-2') : '—' }}</td>
+              <td>{{ row.capitalized > 0 ? (row.capitalized | number: '1.2-2') : '—' }}</td>
+              <td>{{ row.balance | number: '1.2-2' }}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3">合计</td>
+              <td>{{ columnTotal(item.plan, 'payment') | number: '1.2-2' }}</td>
+              <td>{{ columnTotal(item.plan, 'principal') | number: '1.2-2' }}</td>
+              <td>{{ columnTotal(item.plan, 'interest') | number: '1.2-2' }}</td>
+              <td>{{ columnTotal(item.plan, 'lumpSumPaid') | number: '1.2-2' }}</td>
+              <td>{{ columnTotal(item.plan, 'prepayment') | number: '1.2-2' }}</td>
+              <td>{{ columnTotal(item.plan, 'capitalized') | number: '1.2-2' }}</td>
+              <td>—</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </article>
+  </div>
+</section>

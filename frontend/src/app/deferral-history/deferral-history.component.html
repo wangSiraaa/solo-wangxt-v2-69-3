@@ -1,0 +1,48 @@
+<section class="card">
+  <h2>延期模拟记录</h2>
+  <p class="empty" *ngIf="records.length === 0">暂无记录，提交一次延期模拟后会显示在这里。</p>
+  <div class="table-wrap" *ngIf="records.length > 0">
+    <table>
+      <thead>
+        <tr>
+          <th>时间</th>
+          <th>合同</th>
+          <th>政策快照</th>
+          <th>提前还款</th>
+          <th>原方案</th>
+          <th>延期方案</th>
+          <th>延期利息（元）</th>
+          <th>资本化（元）</th>
+          <th>利息差（元）</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of records">
+          <td>{{ r.createdAt | date: 'yyyy-MM-dd HH:mm:ss' }}</td>
+          <td>{{ r.contractNo ?? '手工录入' }}</td>
+          <td>{{ r.policyName ?? '内联区间' }}（{{ r.intervalCount }} 个区间）</td>
+          <td>
+            <ng-container *ngIf="r.prepaymentAmount > 0; else noPrepay">
+              第 {{ r.prepaymentPeriod }} 期 · {{ r.prepaymentAmount | number: '1.2-2' }}
+            </ng-container>
+            <ng-template #noPrepay>—</ng-template>
+          </td>
+          <td>{{ r.originalPeriods }} 期</td>
+          <td>{{ r.deferredPeriods }} 期（+{{ r.addedPeriods }}）</td>
+          <td>{{ r.deferredInterest | number: '1.2-2' }}</td>
+          <td>{{ r.capitalizedAmount | number: '1.2-2' }}</td>
+          <td>{{ r.interestDiff | number: '1.2-2' }}</td>
+          <td class="actions">
+            <button type="button" (click)="viewRecord.emit(r.id)">查看</button>
+            <button type="button" (click)="replay(r.id)" [disabled]="stateOf(r.id).loading">
+              {{ stateOf(r.id).loading ? '重算中…' : '按快照重算' }}
+            </button>
+            <span class="replay-ok" *ngIf="stateOf(r.id).matches === true">✓ 与存档一致</span>
+            <span class="replay-bad" *ngIf="stateOf(r.id).matches === false">✗ 不一致</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

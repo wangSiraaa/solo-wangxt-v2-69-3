@@ -32,6 +32,32 @@
   gap: 18px;
 }
 
+.tabs {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 16px 24px 0;
+  display: flex;
+  gap: 8px;
+}
+
+.tabs button {
+  padding: 9px 20px;
+  border: 1px solid #cbd5e1;
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tabs button.active {
+  background: #fff;
+  color: #1e3a8a;
+  border-color: #e2e8f0;
+}
+
 .error-banner {
   background: #fef2f2;
   border: 1px solid #fecaca;
