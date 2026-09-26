@@ -1,0 +1,157 @@
+<section class="result" *ngIf="result">
+  <!-- 差额视图：延期方案 − 原方案 -->
+  <div class="diff-banner">
+    <h2>原方案 / 延期方案差额（延期方案 − 原方案）</h2>
+    <div class="diff-chips">
+      <div class="chip highlight">
+        <span class="chip-label">新增期数</span>
+        <strong>+{{ result.diff.addedPeriods }} 期</strong>
+        <small>原 {{ result.original.summary.periods }} 期 → 延期 {{ result.deferred.summary.periods }} 期</small>
+      </div>
+      <div class="chip">
+        <span class="chip-label">总利息差</span>
+        <strong>+{{ result.diff.interestDiff | number: '1.2-2' }} 元</strong>
+        <small>原 {{ result.original.summary.totalInterest | number: '1.2-2' }} → 延期 {{ result.deferred.summary.totalInterest | number: '1.2-2' }}</small>
+      </div>
+      <div class="chip">
+        <span class="chip-label">还款总额差</span>
+        <strong>+{{ result.diff.totalPaymentDiff | number: '1.2-2' }} 元</strong>
+      </div>
+      <div class="chip">
+        <span class="chip-label">总成本差（含费）</span>
+        <strong>+{{ result.diff.totalCostDiff | number: '1.2-2' }} 元</strong>
+      </div>
+    </div>
+
+    <!-- 利息构成单独列示 -->
+    <div class="diff-chips breakdown">
+      <div class="chip">
+        <span class="chip-label">正常利息</span>
+        <strong>{{ result.deferred.summary.normalInterest | number: '1.2-2' }} 元</strong>
+        <small>宽限区间外期次计提</small>
+      </div>
+      <div class="chip">
+        <span class="chip-label">延期利息</span>
+        <strong>{{ result.deferred.summary.defermentInterest | number: '1.2-2' }} 元</strong>
+        <small>宽限区间内期次计提</small>
+      </div>
+      <div class="chip">
+        <span class="chip-label">资本化金额</span>
+        <strong>{{ result.deferred.summary.capitalizedAmount | number: '1.2-2' }} 元</strong>
+        <small>计入本金、抬高后续计息基数</small>
+      </div>
+    </div>
+
+    <!-- 政策快照 -->
+    <p class="explanation">
+      政策快照（{{ result.policy.policyVersion }}）：{{ result.policy.intervals.length }} 个宽限区间
+      <ng-container *ngFor="let iv of result.policy.intervals; let last = last">
+        第 {{ iv.startPeriod }} ~ {{ iv.endPeriod }} 期（{{ typeLabels[iv.type] }}）{{ last ? '' : '；' }}
+      </ng-container>
+      <ng-container *ngIf="result.policy.intervals.length === 0">（无）</ng-container>；
+      提前还款 {{ result.policy.prepaymentAmount | number: '1.2-2' }} 元
+      {{ result.policy.prepaymentPeriod === 0 ? '于计划开始前扣减' : '于第 ' + result.policy.prepaymentPeriod + ' 期扣减' }}；
+      手续费 {{ result.policy.fee | number: '1.2-2' }} 元。
+      日内顺序：计提利息 → 区间事件 → 提前还款 → 常规还款。
+    </p>
+  </div>
+
+  <!-- 两方案并排 -->
+  <div class="plans">
+    <article class="plan card" *ngFor="let plan of plans; trackBy: trackPlan">
+      <h3>{{ plan.label }}</h3>
+      <div class="summary-grid">
+        <div>
+          <span>期数</span>
+          <strong>{{ plan.summary.periods }} 期</strong>
+        </div>
+        <div *ngIf="isInstallment">
+          <span>常规月供</span>
+          <strong>{{ plan.summary.monthlyPayment! | number: '1.2-2' }} 元</strong>
+        </div>
+        <ng-container *ngIf="!isInstallment">
+          <div>
+            <span>首期还款</span>
+            <strong>{{ plan.summary.firstPayment | number: '1.2-2' }} 元</strong>
+          </div>
+          <div>
+            <span>末期还款</span>
+            <strong>{{ plan.summary.lastPayment | number: '1.2-2' }} 元</strong>
+          </div>
+        </ng-container>
+        <div>
+          <span>实还本金</span>
+          <strong>{{ plan.summary.totalPrincipal | number: '1.2-2' }} 元</strong>
+        </div>
+        <div>
+          <span>计提利息合计</span>
+          <strong class="interest">{{ plan.summary.totalInterest | number: '1.2-2' }} 元</strong>
+        </div>
+        <div>
+          <span>其中正常利息</span>
+          <strong>{{ plan.summary.normalInterest | number: '1.2-2' }} 元</strong>
+        </div>
+        <div>
+          <span>其中延期利息</span>
+          <strong>{{ plan.summary.defermentInterest | number: '1.2-2' }} 元</strong>
+        </div>
+        <div>
+          <span>资本化金额</span>
+          <strong>{{ plan.summary.capitalizedAmount | number: '1.2-2' }} 元</strong>
+        </div>
+        <div>
+          <span>还款总额</span>
+          <strong>{{ plan.summary.totalPayment | number: '1.2-2' }} 元</strong>
+        </div>
+        <div>
+          <span>总成本（含费）</span>
+          <strong>{{ plan.summary.totalCost | number: '1.2-2' }} 元</strong>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>期次</th>
+              <th>还款额（元）</th>
+              <th>本金（元）</th>
+              <th>实付利息（元）</th>
+              <th>计提利息（元）</th>
+              <th>资本化（元）</th>
+              <th>剩余本金（元）</th>
+              <th>事件</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of plan.schedule"
+                [class.settled]="row.balance === 0"
+                [class.grace]="row.events.length > 0">
+              <td>{{ row.period }}</td>
+              <td>{{ row.payment | number: '1.2-2' }}</td>
+              <td>{{ row.principal | number: '1.2-2' }}</td>
+              <td>{{ row.interest | number: '1.2-2' }}</td>
+              <td>{{ row.accruedInterest | number: '1.2-2' }}</td>
+              <td>{{ row.capitalized | number: '1.2-2' }}</td>
+              <td>{{ row.balance | number: '1.2-2' }}</td>
+              <td class="events">
+                <span class="tag" *ngFor="let e of row.events">{{ eventLabel(e) }}</span>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>合计</td>
+              <td>{{ plan.summary.totalPayment | number: '1.2-2' }}</td>
+              <td>{{ plan.summary.totalPrincipal | number: '1.2-2' }}</td>
+              <td>{{ plan.summary.totalInterest - plan.summary.capitalizedAmount | number: '1.2-2' }}</td>
+              <td>{{ plan.summary.totalInterest | number: '1.2-2' }}</td>
+              <td>{{ plan.summary.capitalizedAmount | number: '1.2-2' }}</td>
+              <td colspan="2">—</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </article>
+  </div>
+</section>

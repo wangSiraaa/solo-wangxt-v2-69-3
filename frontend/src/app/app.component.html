@@ -1,22 +1,44 @@
 <header class="topbar">
   <div>
-    <h1>提前还款方案对比工作台</h1>
+    <h1>还款方案工作台</h1>
     <p>
-      对同一笔提前还款，分别生成「缩短期限」与「降低月供」两种还款计划，逐期展示本金、利息与剩余余额。
-      支持等额本息与等额本金；全部使用模拟合同，不连接真实放贷接口。
+      提前还款对比：对同一笔提前还款生成「缩短期限」与「降低月供」两种计划。
+      宽限与延期模拟：配置互不重叠的宽限区间（只还利息 / 利息资本化 / 暂停后补缴），
+      与提前还款按固定日内顺序生成延期计划，并单独列示正常利息、延期利息、资本化金额与新增期数。
+      全部使用模拟合同，不连接真实放贷接口。
     </p>
   </div>
 </header>
 
+<nav class="tabs">
+  <button type="button" [class.active]="tab === 'compare'" (click)="tab = 'compare'">提前还款对比</button>
+  <button type="button" [class.active]="tab === 'deferment'" (click)="tab = 'deferment'">宽限与延期模拟</button>
+</nav>
+
 <main class="container">
-  <app-compare-form [loading]="loading" (submitted)="onSubmit($event)" />
+  <ng-container *ngIf="tab === 'compare'">
+    <app-compare-form [loading]="loading" (submitted)="onSubmit($event)" />
 
-  <div class="error-banner" *ngIf="error">{{ error }}</div>
+    <div class="error-banner" *ngIf="error">{{ error }}</div>
 
-  <ng-container *ngIf="comparison">
-    <p class="record-note" *ngIf="recordId != null">当前展示：计算记录 #{{ recordId }}</p>
-    <app-plan-result [result]="comparison" [method]="method" />
+    <ng-container *ngIf="comparison">
+      <p class="record-note" *ngIf="recordId != null">当前展示：计算记录 #{{ recordId }}</p>
+      <app-plan-result [result]="comparison" [method]="method" />
+    </ng-container>
+
+    <app-history [refreshToken]="historyRefresh" (viewRecord)="onViewRecord($event)" />
   </ng-container>
 
-  <app-history [refreshToken]="historyRefresh" (viewRecord)="onViewRecord($event)" />
+  <ng-container *ngIf="tab === 'deferment'">
+    <app-deferment-form [loading]="defermentLoading" (submitted)="onSimulateDeferment($event)" />
+
+    <div class="error-banner" *ngIf="defermentError">{{ defermentError }}</div>
+
+    <ng-container *ngIf="deferment">
+      <p class="record-note" *ngIf="defermentRecordId != null">当前展示：延期模拟记录 #{{ defermentRecordId }}</p>
+      <app-deferment-result [result]="deferment" />
+    </ng-container>
+
+    <app-deferment-history [refreshToken]="defermentRefresh" (viewRecord)="onViewDeferment($event)" />
+  </ng-container>
 </main>

@@ -1,0 +1,100 @@
+<form [formGroup]="form" (ngSubmit)="submit()" class="card">
+  <h2>宽限与延期模拟</h2>
+
+  <div class="field">
+    <label for="d-contract">模拟合同</label>
+    <select id="d-contract" formControlName="contractId">
+      <option [ngValue]="null">— 手工录入参数 —</option>
+      <option *ngFor="let c of contracts" [ngValue]="c.id">
+        {{ c.contractNo }} · {{ c.borrowerName }} · {{ methodLabels[c.method] }} ·
+        余额 {{ c.remainingPrincipal | number: '1.0-0' }} 元 · 剩 {{ c.remainingPeriods }} 期
+      </option>
+    </select>
+    <small class="hint" *ngIf="loadError">{{ loadError }}</small>
+  </div>
+
+  <ng-container *ngIf="selectedContract as c; else manualParams">
+    <div class="contract-info">
+      <div><span>还款方式</span><strong>{{ methodLabels[c.method] }}</strong></div>
+      <div><span>年利率</span><strong>{{ c.annualRate * 100 | number: '1.0-3' }}%</strong></div>
+      <div><span>剩余本金</span><strong>{{ c.remainingPrincipal | number: '1.2-2' }} 元</strong></div>
+      <div><span>剩余期数</span><strong>{{ c.remainingPeriods }} 期</strong></div>
+    </div>
+  </ng-container>
+
+  <ng-template #manualParams>
+    <div class="grid">
+      <div class="field">
+        <label for="d-method">还款方式</label>
+        <select id="d-method" formControlName="method">
+          <option value="EQUAL_INSTALLMENT">等额本息</option>
+          <option value="EQUAL_PRINCIPAL">等额本金</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="d-rate">年利率（%）</label>
+        <input id="d-rate" type="number" step="0.001" formControlName="annualRatePercent" />
+      </div>
+      <div class="field">
+        <label for="d-principal">剩余本金（元）</label>
+        <input id="d-principal" type="number" step="0.01" formControlName="remainingPrincipal" />
+      </div>
+      <div class="field">
+        <label for="d-periods">剩余期数（月）</label>
+        <input id="d-periods" type="number" step="1" formControlName="remainingPeriods" />
+      </div>
+    </div>
+  </ng-template>
+
+  <div class="grid">
+    <div class="field">
+      <label for="d-prepay">提前还款金额（元，0 表示不提前还款）</label>
+      <input id="d-prepay" type="number" step="0.01" formControlName="prepaymentAmount" />
+    </div>
+    <div class="field">
+      <label for="d-prepay-period">提前还款期次（0 = 计划开始前）</label>
+      <input id="d-prepay-period" type="number" step="1" formControlName="prepaymentPeriod" />
+    </div>
+    <div class="field">
+      <label for="d-fee">手续费（元，一次性）</label>
+      <input id="d-fee" type="number" step="0.01" formControlName="fee" />
+    </div>
+  </div>
+
+  <div class="intervals" formArrayName="intervals">
+    <div class="intervals-head">
+      <h3>宽限区间（互不重叠，相邻允许）</h3>
+      <button type="button" class="secondary" (click)="addInterval()">+ 添加区间</button>
+    </div>
+    <p class="empty" *ngIf="intervals.length === 0">未配置宽限区间，延期方案将与原方案一致。</p>
+
+    <div class="interval-row" *ngFor="let g of intervals.controls; let i = index" [formGroupName]="i">
+      <span class="interval-no">#{{ i + 1 }}</span>
+      <label>起始期
+        <input type="number" step="1" min="1" formControlName="startPeriod" />
+      </label>
+      <label>结束期
+        <input type="number" step="1" min="1" formControlName="endPeriod" />
+      </label>
+      <label>类型
+        <select formControlName="type">
+          <option *ngFor="let t of typeOptions" [ngValue]="t">{{ typeLabels[t] }}</option>
+        </select>
+      </label>
+      <button type="button" class="danger" (click)="removeInterval(i)">删除</button>
+    </div>
+
+    <ul class="interval-errors" *ngIf="intervalErrors.length > 0">
+      <li *ngFor="let e of intervalErrors">{{ e }}</li>
+    </ul>
+  </div>
+
+  <p class="order-note">
+    日内事件顺序：① 计提利息 → ② 区间事件（付息 / 资本化 / 补缴）→ ③ 提前还款 → ④ 常规还款。
+    宽限结束期与提前还款同期时按此顺序稳定执行。
+  </p>
+
+  <button type="submit" [disabled]="loading || form.invalid || intervalErrors.length > 0">
+    {{ loading ? '计算中…' : '模拟原方案 / 延期方案' }}
+  </button>
+</form>

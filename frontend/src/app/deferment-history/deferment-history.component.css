@@ -1,0 +1,98 @@
+.card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 22px;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.06);
+}
+
+h2 {
+  margin: 0 0 14px;
+  font-size: 17px;
+  color: #0f172a;
+}
+
+.empty {
+  color: #64748b;
+  font-size: 14px;
+  margin: 0;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+th,
+td {
+  padding: 8px 10px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+th:nth-child(-n + 4),
+td:nth-child(-n + 4) {
+  text-align: left;
+}
+
+thead th {
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 600;
+}
+
+tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+td small {
+  color: #64748b;
+}
+
+button {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge {
+  font-size: 11px;
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.badge.ok {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.badge.bad {
+  background: #fee2e2;
+  color: #b91c1c;
+}

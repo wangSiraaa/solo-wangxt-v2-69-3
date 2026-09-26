@@ -92,3 +92,131 @@ export interface RecordSummaryView {
   reduceTotalInterest: number;
   interestDiff: number;
 }
+
+/* ---------- 宽限与延期模拟 ---------- */
+
+export type DefermentType = 'INTEREST_ONLY' | 'CAPITALIZE' | 'LUMP_SUM';
+
+export const DEFERMENT_TYPE_LABELS: Record<DefermentType, string> = {
+  INTEREST_ONLY: '只还利息',
+  CAPITALIZE: '暂停且利息资本化',
+  LUMP_SUM: '暂停后一次性补缴',
+};
+
+/** 逐期事件标签（与后端 DefermentService 的 events 对应）。 */
+export const DEFERMENT_EVENT_LABELS: Record<string, string> = {
+  INTEREST_ONLY: '只还利息',
+  CAPITALIZE: '利息资本化',
+  DEFER: '暂停挂账',
+  CATCH_UP: '一次性补缴',
+  PREPAYMENT: '提前还款',
+};
+
+export interface DefermentInterval {
+  startPeriod: number;
+  endPeriod: number;
+  type: DefermentType;
+}
+
+export interface DefermentRequest {
+  contractId?: number | null;
+  method?: RepaymentMethod | null;
+  annualRate?: number | null;
+  remainingPrincipal?: number | null;
+  remainingPeriods?: number | null;
+  prepaymentAmount: number;
+  prepaymentPeriod: number;
+  fee: number;
+  intervals: DefermentInterval[];
+}
+
+export interface DefermentPolicySnapshot {
+  policyVersion: string;
+  method: RepaymentMethod;
+  annualRate: number;
+  remainingPrincipal: number;
+  remainingPeriods: number;
+  prepaymentAmount: number;
+  prepaymentPeriod: number;
+  fee: number;
+  intervals: DefermentInterval[];
+}
+
+export interface DefermentRow {
+  period: number;
+  payment: number;
+  principal: number;
+  interest: number;
+  accruedInterest: number;
+  capitalized: number;
+  balance: number;
+  events: string[];
+}
+
+export interface DefermentSummary {
+  periods: number;
+  firstPayment: number;
+  lastPayment: number;
+  monthlyPayment: number | null;
+  totalPayment: number;
+  totalPrincipal: number;
+  totalInterest: number;
+  normalInterest: number;
+  defermentInterest: number;
+  capitalizedAmount: number;
+  fee: number;
+  totalCost: number;
+}
+
+export interface DefermentPlanResult {
+  code: string;
+  label: string;
+  summary: DefermentSummary;
+  schedule: DefermentRow[];
+}
+
+export interface DefermentDiff {
+  addedPeriods: number;
+  interestDiff: number;
+  totalPaymentDiff: number;
+  totalCostDiff: number;
+  defermentInterest: number;
+  capitalizedAmount: number;
+}
+
+export interface DefermentComparison {
+  original: DefermentPlanResult;
+  deferred: DefermentPlanResult;
+  diff: DefermentDiff;
+  policy: DefermentPolicySnapshot;
+}
+
+export interface DefermentResponse {
+  recordId: number;
+  comparison: DefermentComparison;
+}
+
+export interface DefermentRecordView {
+  id: number;
+  createdAt: string;
+  contractNo: string | null;
+  method: RepaymentMethod;
+  annualRate: number;
+  remainingPrincipal: number;
+  remainingPeriods: number;
+  prepaymentAmount: number;
+  prepaymentPeriod: number;
+  intervalCount: number;
+  originalPeriods: number;
+  deferredPeriods: number;
+  addedPeriods: number;
+  defermentInterest: number;
+  capitalizedAmount: number;
+  interestDiff: number;
+}
+
+export interface ReproduceResult {
+  recordId: number;
+  matched: boolean;
+  recomputed: DefermentComparison;
+}

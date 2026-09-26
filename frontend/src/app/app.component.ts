@@ -3,21 +3,43 @@ import { CommonModule } from '@angular/common';
 import { CompareFormComponent } from './compare-form/compare-form.component';
 import { PlanResultComponent } from './plan-result/plan-result.component';
 import { HistoryComponent } from './history/history.component';
+import { DefermentFormComponent } from './deferment-form/deferment-form.component';
+import { DefermentResultComponent } from './deferment-result/deferment-result.component';
+import { DefermentHistoryComponent } from './deferment-history/deferment-history.component';
 import { LoanApiService } from './loan-api.service';
-import { CompareRequest, ComparisonResult, RepaymentMethod } from './models';
+import {
+  CompareRequest,
+  ComparisonResult,
+  DefermentComparison,
+  DefermentRequest,
+  RepaymentMethod,
+} from './models';
 
 /**
- * 工作台主界面：试算表单 + 两方案对比结果 + 历史记录。
+ * 工作台主界面：提前还款对比 / 宽限与延期模拟 两个页签。
  */
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, CompareFormComponent, PlanResultComponent, HistoryComponent],
+  imports: [
+    CommonModule,
+    CompareFormComponent,
+    PlanResultComponent,
+    HistoryComponent,
+    DefermentFormComponent,
+    DefermentResultComponent,
+    DefermentHistoryComponent,
+  ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })
 export class AppComponent {
   private readonly api = inject(LoanApiService);
+
+  /** 当前页签：提前还款对比 / 宽限与延期模拟。 */
+  tab: 'compare' | 'deferment' = 'compare';
+
+  /* ---------- 提前还款对比 ---------- */
 
   comparison: ComparisonResult | null = null;
   method: RepaymentMethod = 'EQUAL_INSTALLMENT';
@@ -58,6 +80,48 @@ export class AppComponent {
       error: () => {
         this.error = '历史记录加载失败';
         this.loading = false;
+      },
+    });
+  }
+
+  /* ---------- 宽限与延期模拟 ---------- */
+
+  deferment: DefermentComparison | null = null;
+  defermentRecordId: number | null = null;
+  defermentLoading = false;
+  defermentError = '';
+  /** 每完成一次模拟递增，通知延期记录刷新。 */
+  defermentRefresh = 0;
+
+  onSimulateDeferment(req: DefermentRequest): void {
+    this.defermentLoading = true;
+    this.defermentError = '';
+    this.api.simulateDeferment(req).subscribe({
+      next: (resp) => {
+        this.deferment = resp.comparison;
+        this.defermentRecordId = resp.recordId;
+        this.defermentLoading = false;
+        this.defermentRefresh++;
+      },
+      error: (err) => {
+        this.defermentError = err?.error?.message ?? '模拟失败，请检查输入或确认后端已启动';
+        this.defermentLoading = false;
+      },
+    });
+  }
+
+  onViewDeferment(id: number): void {
+    this.defermentLoading = true;
+    this.defermentError = '';
+    this.api.getDeferment(id).subscribe({
+      next: (resp) => {
+        this.deferment = resp.comparison;
+        this.defermentRecordId = resp.recordId;
+        this.defermentLoading = false;
+      },
+      error: () => {
+        this.defermentError = '延期模拟记录加载失败';
+        this.defermentLoading = false;
       },
     });
   }
